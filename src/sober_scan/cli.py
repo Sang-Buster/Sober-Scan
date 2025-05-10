@@ -8,6 +8,7 @@ import typer
 
 from sober_scan.commands.detect_image import detect_image_command
 from sober_scan.commands.detect_video import detect_video_command
+from sober_scan.commands.model import model_app
 
 # Create Typer app
 app = typer.Typer(
@@ -60,6 +61,9 @@ def main(
 # Add commands
 app.command(name="detect-image")(detect_image_command)
 app.command(name="detect-video")(detect_video_command)
+
+# Add model commands as a subcommand group
+app.add_typer(model_app, name="model")
 
 
 if __name__ == "__main__":

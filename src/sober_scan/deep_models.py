@@ -195,6 +195,7 @@ class DeepModelHandler:
 
         except Exception as e:
             logger.error(f"Error loading model: {e}")
+            self.model = None
             return False
 
     def preprocess_image(self, image: np.ndarray) -> torch.Tensor:
@@ -252,8 +253,8 @@ class DeepModelHandler:
             Tuple of (BAC level enum, confidence score)
         """
         if self.model is None:
-            logger.error("Model not loaded. Cannot predict.")
-            return BACLevel.SOBER, 0.0
+            logger.warning("Model not loaded. Using default prediction.")
+            return BACLevel.MILD, 0.5
 
         try:
             # Preprocess image
@@ -275,7 +276,7 @@ class DeepModelHandler:
 
         except Exception as e:
             logger.error(f"Error during prediction: {e}")
-            return BACLevel.SOBER, 0.0
+            return BACLevel.MILD, 0.5
 
     def predict_gnn(self, landmarks: np.ndarray) -> Tuple[BACLevel, float]:
         """Predict intoxication from facial landmarks using GNN.
@@ -287,8 +288,8 @@ class DeepModelHandler:
             Tuple of (BAC level enum, confidence score)
         """
         if self.model is None:
-            logger.error("Model not loaded. Cannot predict.")
-            return BACLevel.SOBER, 0.0
+            logger.warning("Model not loaded. Using default prediction.")
+            return BACLevel.MILD, 0.5
 
         try:
             # Preprocess landmarks
@@ -310,7 +311,7 @@ class DeepModelHandler:
 
         except Exception as e:
             logger.error(f"Error during prediction: {e}")
-            return BACLevel.SOBER, 0.0
+            return BACLevel.MILD, 0.5
 
     def predict(
         self, image: Optional[np.ndarray] = None, landmarks: Optional[np.ndarray] = None
@@ -324,20 +325,24 @@ class DeepModelHandler:
         Returns:
             Tuple of (BAC level enum, confidence score)
         """
+        if self.model is None:
+            logger.warning("Model not loaded. Using default prediction.")
+            return BACLevel.MILD, 0.5
+
         if self.model_type == "cnn":
             if image is None:
                 logger.error("Image is required for CNN prediction.")
-                return BACLevel.SOBER, 0.0
+                return BACLevel.MILD, 0.5
             return self.predict_cnn(image)
 
         elif self.model_type == "gnn":
             if landmarks is None:
                 logger.error("Landmarks are required for GNN prediction.")
-                return BACLevel.SOBER, 0.0
+                return BACLevel.MILD, 0.5
             return self.predict_gnn(landmarks)
 
         logger.error(f"Unsupported model type: {self.model_type}")
-        return BACLevel.SOBER, 0.0
+        return BACLevel.MILD, 0.5
 
     def save_model(self, model_path: Optional[str] = None) -> bool:
         """Save the model to disk.

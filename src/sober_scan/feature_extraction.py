@@ -1,12 +1,13 @@
 """Functions to extract facial features for intoxication detection."""
 
+import os
 from typing import Callable, Dict, Optional, Tuple
 
 import cv2
 import dlib
 import numpy as np
 
-from sober_scan.config import FEATURE_PARAMS
+from sober_scan.config import FEATURE_PARAMS, MODEL_DIR
 from sober_scan.utils import logger
 
 
@@ -39,12 +40,25 @@ def get_landmark_detector(detector_type: str = "dlib") -> Callable:
 
     Returns:
         Landmark detector function
+
+    Raises:
+        FileNotFoundError: If the required model file is not found
     """
     if detector_type == "dlib":
         # Path to the pre-trained shape predictor model
-        # This is a placeholder - real implementation would need the model file
+        model_path = os.path.join(MODEL_DIR, "shape_predictor_68_face_landmarks.dat")
+
+        if not os.path.exists(model_path):
+            error_msg = (
+                f"Required dlib shape predictor model not found at {model_path}. "
+                "Please download the model using: "
+                "'sober-scan model download dlib-shape-predictor'"
+            )
+            logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
+
         try:
-            predictor = dlib.shape_predictor("models/shape_predictor_68_face_landmarks.dat")
+            predictor = dlib.shape_predictor(model_path)
 
             def detect_landmarks(img, face_rect):
                 dlib_rect = dlib.rectangle(face_rect[0], face_rect[1], face_rect[2], face_rect[3])
@@ -52,13 +66,14 @@ def get_landmark_detector(detector_type: str = "dlib") -> Callable:
                 return np.array([(shape.part(i).x, shape.part(i).y) for i in range(68)])
 
             return detect_landmarks
-        except RuntimeError:
-            logger.warning("Could not load dlib shape predictor model. Returning a placeholder function.")
-            # Return a placeholder function when the model file is not available
-            return lambda img, face_rect: np.zeros((68, 2))
+        except RuntimeError as e:
+            error_msg = f"Error loading dlib shape predictor model: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
     else:
-        logger.warning(f"Unsupported landmark detector: {detector_type}. Using placeholder.")
-        return lambda img, face_rect: np.zeros((68, 2))
+        error_msg = f"Unsupported landmark detector: {detector_type}"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
 
 def detect_face_and_landmarks(image: np.ndarray) -> Tuple[Optional[Tuple[int, int, int, int]], Optional[np.ndarray]]:
@@ -72,7 +87,6 @@ def detect_face_and_landmarks(image: np.ndarray) -> Tuple[Optional[Tuple[int, in
     """
     # Get detectors based on config
     face_detector = get_face_detector(FEATURE_PARAMS["face_detector"])
-    landmark_detector = get_landmark_detector(FEATURE_PARAMS["landmark_model"])
 
     # Detect faces
     faces = face_detector(image)
@@ -91,8 +105,13 @@ def detect_face_and_landmarks(image: np.ndarray) -> Tuple[Optional[Tuple[int, in
 
     # Detect landmarks
     try:
+        # Get landmark detector
+        landmark_detector = get_landmark_detector(FEATURE_PARAMS["landmark_model"])
         landmarks = landmark_detector(image, face_rect)
         return face_rect, landmarks
+    except (FileNotFoundError, RuntimeError, ValueError):
+        # Let the error propagate up to be handled by the command
+        raise
     except Exception as e:
         logger.error(f"Error detecting landmarks: {e}")
         return face_rect, None
@@ -278,6 +297,11 @@ def extract_features(image: np.ndarray) -> Dict[str, float]:
 
     Returns:
         Dictionary of extracted features
+
+    Raises:
+        FileNotFoundError: If required model files are not found
+        RuntimeError: If there's an error in the landmark detection
+        ValueError: If an unsupported detector is specified
     """
     # Detect face and landmarks
     face_rect, landmarks = detect_face_and_landmarks(image)

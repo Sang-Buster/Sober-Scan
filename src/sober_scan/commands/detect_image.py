@@ -76,86 +76,129 @@ def detect_image_command(
         typer.echo("Error: Failed to extract facial features")
         raise typer.Exit(code=1)
 
-    # Initialize appropriate model based on type
-    if model_type in [ModelType.TRADITIONAL_SVM, ModelType.TRADITIONAL_RF]:
-        # Traditional ML approach
-        model = TraditionalModel(model_type=model_type.value, model_path=str(model_path) if model_path else None)
-        bac_level, confidence = model.predict(features)
+    # Report on features found
+    typer.echo(f"Detected face at position: {face_rect}")
+    typer.echo(f"Extracted {len(features)} facial features")
 
-    elif model_type == ModelType.DEEP_CNN:
-        # Deep CNN approach
-        model = DeepModelHandler(model_type="cnn", model_path=str(model_path) if model_path else None)
-        bac_level, confidence = model.predict(image=image)
+    try:
+        # Initialize appropriate model based on type
+        if model_type in [ModelType.TRADITIONAL_SVM, ModelType.TRADITIONAL_RF]:
+            # Traditional ML approach
+            model = TraditionalModel(model_type=model_type.value, model_path=str(model_path) if model_path else None)
 
-    elif model_type == ModelType.DEEP_GNN:
-        # Graph NN approach (needs landmarks)
-        if landmarks is None:
-            typer.echo("Error: No facial landmarks detected for GNN model")
+            # Check if model is loaded properly
+            if model.model is None:
+                typer.echo(f"Warning: No trained model found for {model_type}.")
+                typer.echo("Using default classification (results may not be accurate).")
+                # Provide a fallback prediction - just use some middle values to indicate uncertainty
+                bac_level = "N/A"
+                confidence = 0
+            else:
+                bac_level, confidence = model.predict(features)
+
+        elif model_type == ModelType.DEEP_CNN:
+            # Deep CNN approach
+            model = DeepModelHandler(model_type="cnn", model_path=str(model_path) if model_path else None)
+
+            # Check if model is loaded properly
+            if model.model is None:
+                typer.echo(f"Warning: No trained model found for {model_type}.")
+                typer.echo("Using default classification (results may not be accurate).")
+                # Provide a fallback prediction
+                bac_level = "N/A"
+                confidence = 0
+            else:
+                bac_level, confidence = model.predict(image=image)
+
+        elif model_type == ModelType.DEEP_GNN:
+            # Graph NN approach (needs landmarks)
+            if landmarks is None:
+                typer.echo("Error: No facial landmarks detected for GNN model")
+                raise typer.Exit(code=1)
+
+            model = DeepModelHandler(model_type="gnn", model_path=str(model_path) if model_path else None)
+
+            # Check if model is loaded properly
+            if model.model is None:
+                typer.echo(f"Warning: No trained model found for {model_type}.")
+                typer.echo("Using default classification (results may not be accurate).")
+                # Provide a fallback prediction
+                bac_level = "N/A"
+                confidence = 0
+            else:
+                bac_level, confidence = model.predict(landmarks=landmarks)
+
+        else:
+            typer.echo(f"Error: Unsupported model type: {model_type}")
             raise typer.Exit(code=1)
 
-        model = DeepModelHandler(model_type="gnn", model_path=str(model_path) if model_path else None)
-        bac_level, confidence = model.predict(landmarks=landmarks)
+        # Print results
+        result_str = f"Detected intoxication level: {bac_level.name} (confidence: {confidence:.2f})"
+        typer.echo(result_str)
 
-    else:
-        typer.echo(f"Error: Unsupported model type: {model_type}")
-        raise typer.Exit(code=1)
+        # Visualize and save results if requested
+        if visualize or output_path:
+            visualization = image.copy()
 
-    # Print results
-    result_str = f"Detected intoxication level: {bac_level.name} (confidence: {confidence:.2f})"
-    typer.echo(result_str)
+            # Draw landmarks if available
+            if landmarks is not None and visualize:
+                visualization = draw_landmarks(visualization, landmarks)
 
-    # Visualize and save results if requested
-    if visualize or output_path:
-        visualization = image.copy()
+            # Draw intoxication result
+            visualization = draw_intoxication_result(visualization, bac_level, confidence)
 
-        # Draw landmarks if available
-        if landmarks is not None and visualize:
-            visualization = draw_landmarks(visualization, landmarks)
+            # Save output image
+            if output_path:
+                if save_image(visualization, output_path):
+                    typer.echo(f"Result saved to {output_path}")
+                else:
+                    typer.echo(f"Error: Failed to save result to {output_path}")
 
-        # Draw intoxication result
-        visualization = draw_intoxication_result(visualization, bac_level, confidence)
-
-        # Save output image
-        if output_path:
-            if save_image(visualization, output_path):
-                typer.echo(f"Result saved to {output_path}")
-            else:
-                typer.echo(f"Error: Failed to save result to {output_path}")
-
-        # Display image if visualize is enabled
-        if visualize:
-            # Convert from RGB to BGR for OpenCV display
-            cv2_img = cv2.cvtColor(visualization, cv2.COLOR_RGB2BGR)
-            cv2.imshow("Intoxication Detection Result", cv2_img)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
-    # Save features if requested
-    if save_features:
-        features_path = (
-            output_path.with_suffix(".csv")
-            if output_path
-            else Path(os.path.splitext(str(image_path))[0] + "_features.csv")
-        )
-
-        # Convert features to CSV format
-        feature_str = ",".join([f"{k},{v}" for k, v in features.items()])
-
-        try:
-            with open(features_path, "w") as f:
-                f.write("feature,value\n")
-                f.write(feature_str)
-
-            typer.echo(f"Features saved to {features_path}")
-
-            # Also save feature plot
+            # Display image if visualize is enabled
             if visualize:
-                plot_path = features_path.with_suffix(".png")
-                plot_features(features, plot_path)
-                typer.echo(f"Feature plot saved to {plot_path}")
+                # Convert from RGB to BGR for OpenCV display
+                cv2_img = cv2.cvtColor(visualization, cv2.COLOR_RGB2BGR)
+                cv2.imshow("Intoxication Detection Result", cv2_img)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
 
-        except Exception as e:
-            typer.echo(f"Error saving features: {e}")
+        # Save features if requested
+        if save_features:
+            features_path = (
+                output_path.with_suffix(".csv")
+                if output_path
+                else Path(os.path.splitext(str(image_path))[0] + "_features.csv")
+            )
+
+            # Convert features to CSV format
+            feature_str = ",".join([f"{k},{v}" for k, v in features.items()])
+
+            try:
+                with open(features_path, "w") as f:
+                    f.write("feature,value\n")
+                    f.write(feature_str)
+
+                typer.echo(f"Features saved to {features_path}")
+
+                # Also save feature plot
+                if visualize:
+                    plot_path = features_path.with_suffix(".png")
+                    plot_features(features, plot_path)
+                    typer.echo(f"Feature plot saved to {plot_path}")
+
+            except Exception as e:
+                typer.echo(f"Error saving features: {e}")
+
+    except Exception as e:
+        typer.echo(f"Error during detection: {e}")
+        if verbose:
+            # In verbose mode, print the full exception details
+            import traceback
+
+            traceback.print_exc()
+        else:
+            typer.echo("Run with --verbose for more details.")
+        raise typer.Exit(code=1)
 
     # Return success
     return

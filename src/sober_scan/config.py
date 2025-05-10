@@ -28,6 +28,46 @@ class BACLevel(Enum):
     SEVERE = 3  # 0.11+ BAC
 
 
+# Model types
+class ModelType(str, Enum):
+    """Types of models that can be downloaded."""
+
+    DLIB_SHAPE_PREDICTOR = "dlib-shape-predictor"
+    TRADITIONAL_SVM = "traditional-svm"
+    DEEP_CNN = "deep-cnn"
+    DEEP_GNN = "deep-gnn"
+    TEMPORAL_LSTM = "temporal-lstm"
+    ALL = "all"
+
+
+# Model URLs
+MODEL_URLS = {
+    ModelType.DLIB_SHAPE_PREDICTOR: "https://github.com/davisking/dlib-models/raw/master/shape_predictor_68_face_landmarks_GTX.dat.bz2",
+    ModelType.TRADITIONAL_SVM: "N/A",
+    ModelType.DEEP_CNN: "https://github.com/opencv/opencv_zoo/raw/refs/heads/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx",
+    ModelType.DEEP_GNN: "https://github.com/ZhaoJ9014/face.evoLVe/raw/master/misc/model_ir_se50.pth",
+    ModelType.TEMPORAL_LSTM: "N/A",
+}
+
+# Model file names
+MODEL_FILENAMES = {
+    ModelType.DLIB_SHAPE_PREDICTOR: "shape_predictor_68_face_landmarks.dat",
+    ModelType.TRADITIONAL_SVM: "traditional_svm.joblib",
+    ModelType.DEEP_CNN: "deep_cnn.pt",
+    ModelType.DEEP_GNN: "graph_nn.pt",
+    ModelType.TEMPORAL_LSTM: "lstm_temporal.pt",
+}
+
+# Model descriptions
+MODEL_DESCRIPTIONS = {
+    ModelType.DLIB_SHAPE_PREDICTOR: "68-point facial landmark predictor model from dlib",
+    ModelType.TRADITIONAL_SVM: "Pre-trained SVM model for intoxication classification",
+    ModelType.DEEP_CNN: "Pre-trained CNN model for intoxication detection from images",
+    ModelType.DEEP_GNN: "Pre-trained Graph Neural Network for landmark-based intoxication detection",
+    ModelType.TEMPORAL_LSTM: "Pre-trained LSTM model for video-based intoxication detection",
+}
+
+
 # Mapping BAC level to probability thresholds
 BAC_THRESHOLDS = {
     BACLevel.SOBER: 0.3,  # Below this probability -> sober
