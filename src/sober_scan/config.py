@@ -43,7 +43,7 @@ class ModelType(str, Enum):
 
 # Model URLs
 MODEL_URLS = {
-    ModelType.DLIB_SHAPE_PREDICTOR: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/shape_predictor_68_face_landmarks.dat",
+    ModelType.DLIB_SHAPE_PREDICTOR: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/shape_predictor_68_face_landmarks.dat.bz2",
     ModelType.SVM: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_svm.joblib",
     ModelType.NB: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_nb.joblib",
     ModelType.KNN: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_knn.joblib",
