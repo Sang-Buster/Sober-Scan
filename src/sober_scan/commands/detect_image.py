@@ -49,6 +49,8 @@ def detect_image_command(
     This command processes a facial image to detect signs of alcohol intoxication,
     extracting features like skin redness, eye aspect ratio, and facial geometry.
     It then classifies the intoxication level using the specified model.
+
+    Note: This command only works with static image files. Video processing is not supported.
     """
     # Setup logger
     setup_logger(verbose)

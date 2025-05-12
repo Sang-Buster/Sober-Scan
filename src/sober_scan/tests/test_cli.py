@@ -19,7 +19,7 @@ def test_app_help():
     """Test the CLI help command."""
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert "A tool that detects alcohol intoxication from facial images and videos." in result.stdout
+    assert "A tool that detects alcohol intoxication from facial images." in result.stdout
     assert "detect-image" in result.stdout
     assert "detect-video" in result.stdout
 

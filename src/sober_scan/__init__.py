@@ -1,1 +1,1 @@
-"""Sober-Scan: A CLI tool that detects alcohol intoxication from facial images and videos."""
+"""Sober-Scan: A CLI tool that detects alcohol intoxication from facial images."""

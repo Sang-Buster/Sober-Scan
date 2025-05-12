@@ -1,7 +1,7 @@
 [project]
 name = "Sober-Scan"
 version = "0.0.1"
-description = "A CLI tool that detects alcohol intoxication from facial images and videos."
+description = "A CLI tool that detects alcohol intoxication from facial images."
 authors = [{ name = "Sang Buster", email = "hello@singsongaftermath.com" }]
 readme = "README.md"
 license = {file = "LICENSE"}
