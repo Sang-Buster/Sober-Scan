@@ -43,12 +43,12 @@ class ModelType(str, Enum):
 
 # Model URLs
 MODEL_URLS = {
-    ModelType.DLIB_SHAPE_PREDICTOR: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/shape_predictor_68_face_landmarks.dat",
-    ModelType.SVM: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/drowsiness_svm.joblib",
-    ModelType.NB: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/drowsiness_nb.joblib",
-    ModelType.KNN: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/drowsiness_knn.joblib",
-    ModelType.RF: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/drowsiness_rf.joblib",
-    ModelType.CNN: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/intoxication_cnn.pt",
+    ModelType.DLIB_SHAPE_PREDICTOR: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/shape_predictor_68_face_landmarks.dat",
+    ModelType.SVM: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_svm.joblib",
+    ModelType.NB: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_nb.joblib",
+    ModelType.KNN: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_knn.joblib",
+    ModelType.RF: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_rf.joblib",
+    ModelType.CNN: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/intoxication_cnn.pt",
 }
 
 # Model file names
