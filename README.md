@@ -18,27 +18,27 @@
 
 <div align="center">
    <table>
-   <tr>
-      <td>
-         <img
-         src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/main/README.assets/demo.gif"
-         alt="Demo GIF"
-         height="600"
-         />
-      </td>
-      <td>
-         <img
-         src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/main/README.assets/test1.png"
-         alt="Test Image 1"
-         height="300"
-         /><br/>
-         <img
-         src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/main/README.assets/test2.png"
-         alt="Test Image 2"
-         height="300"
-         />
-      </td>
-   </tr>
+      <tr>
+         <td>
+            <img
+            src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/refs/heads/main/README.assets/demo.gif"
+            alt="Demo GIF"
+            height="500"
+            />
+         </td>
+         <td>
+            <img
+            src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/refs/heads/main/README.assets/test1.png"
+            alt="Test Image 1"
+            height="300"
+            /><br/>
+            <img
+            src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/refs/heads/main/README.assets/test2.png"
+            alt="Test Image 2"
+            height="300"
+            />
+         </td>
+      </tr>
    </table>
 </div>
 
