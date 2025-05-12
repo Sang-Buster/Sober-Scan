@@ -10,17 +10,36 @@
    <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
    <a href="https://pepy.tech/project/sober-scan"><img src="https://img.shields.io/pypi/dm/sober-scan" alt="Downloads"></a>
    <a href="https://github.com/Sang-Buster/Sober-Scan/commits/main"><img src="https://img.shields.io/github/last-commit/Sang-Buster/Sober-Scan" alt="Last Commit"></a>
-   <h6><small>A CLI tool that detects alcohol intoxication from facial images.</small></h6>
+   <h6><small>A CLI tool that detects alcohol intoxication and drowsiness from facial images.</small></h6>
    <p><b>#Alcohol Intoxication &emsp; #Facial Recognition &emsp; #CLI</b></p>
 </div>
 
 ---
 
 <div align="center">
-  <div style="display: flex; justify-content: center; align-items: center;">
-    <img src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/refs/heads/main/README.assets/demo.gif" width="60%" alt="Demo GIF">
-    <img src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/refs/heads/main/README.assets/test.png" width="30%" height="" alt="Test Image">
-  </div>
+   <table>
+   <tr>
+      <td>
+         <img
+         src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/main/README.assets/demo.gif"
+         alt="Demo GIF"
+         height="600"
+         />
+      </td>
+      <td>
+         <img
+         src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/main/README.assets/test1.png"
+         alt="Test Image 1"
+         height="300"
+         /><br/>
+         <img
+         src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/main/README.assets/test2.png"
+         alt="Test Image 2"
+         height="300"
+         />
+      </td>
+   </tr>
+   </table>
 </div>
 
 <div align="center">
