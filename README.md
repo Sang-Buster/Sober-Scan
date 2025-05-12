@@ -108,7 +108,7 @@ sober-scan --help
 
 9.  **Run the application:**
    ```bash
-   uv run src/sober_scan/app.py
+   uv run src/sober_scan/cli.py
    ```
 
 ---
