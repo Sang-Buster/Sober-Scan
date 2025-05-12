@@ -1,6 +1,6 @@
 [project]
 name = "sober-scan"
-version = "0.0.2"
+version = "0.0.3"
 description = "A CLI tool that detects alcohol intoxication from facial images."
 authors = [{ name = "Sang Buster", email = "hello@singsongaftermath.com" }]
 readme = "README.md"

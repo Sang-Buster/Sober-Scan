@@ -239,7 +239,7 @@ def detect_image_command(
                     prediction = "ALERT"
 
                 # Use a default confidence when no model is available
-                confidence = 0.0
+                confidence = "N/A"
 
             # Print results
             typer.echo(f"Drowsiness Detection Result: {prediction} (confidence: {confidence:.2f})")
@@ -316,8 +316,8 @@ def detect_image_command(
                         else:
                             prediction = "SOBER"
 
-                            # Use a default confidence when no model is available
-                            confidence = 0.0
+                        # Use a default confidence when no model is available
+                        confidence = "N/A"
 
                     typer.echo(f"Intoxication Detection Result: {prediction} (confidence: {confidence:.2f})")
 
