@@ -6,7 +6,7 @@ from typing import Optional
 
 import typer
 
-from sober_scan.commands.detect_image import detect_image_command
+from sober_scan.commands.detect import detect_image_command
 from sober_scan.commands.model import model_app
 
 # Create Typer app
