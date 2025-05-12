@@ -1,6 +1,6 @@
 <div align="center">
    <a href="https://github.com/Sang-Buster/Sober-Scan">
-      <img src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/refs/heads/main/README.assets/logo.png" width=40% alt="logo">
+      <img src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/refs/heads/main/README.assets/logo.png" width=30% alt="logo">
    </a>
    <h1>Sober Scan</h1>
    <a href="https://deepwiki.com/Sang-Buster/Sober-Scan"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
