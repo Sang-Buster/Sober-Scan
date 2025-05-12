@@ -16,7 +16,12 @@
 
 ---
 
-[▶️ Watch Demo Video]()
+<div align="center">
+  <div style="display: flex; justify-content: center; align-items: center;">
+    <img src="README.assets/demo.gif" width="70%" alt="Demo GIF">
+    <img src="README.assets/test.png" width="30%" height="" alt="Test Image">
+  </div>
+</div>
 
 <div align="center">
   <h2>🚀 Getting Started</h2>
