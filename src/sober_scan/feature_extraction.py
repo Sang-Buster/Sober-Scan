@@ -156,9 +156,7 @@ def calculate_eye_aspect_ratio(landmarks: np.ndarray) -> float:
     return (left_ear + right_ear) / 2.0
 
 
-def extract_skin_redness(
-    image: np.ndarray, face_rect: Tuple[int, int, int, int], landmarks: np.ndarray
-) -> Dict[str, float]:
+def extract_skin_redness(image: np.ndarray, face_rect: Tuple[int, int, int, int], landmarks: np.ndarray) -> Dict[str, float]:
     """Extract skin color metrics focused on redness.
 
     Args:
@@ -226,12 +224,8 @@ def extract_skin_redness(
         right_cheek_roi = hsv[right_cheek_y : right_cheek_y + 30, right_cheek_x : right_cheek_x + 30]
 
         # Calculate redness
-        h1, s1, v1 = (
-            cv2.split(left_cheek_roi) if left_cheek_roi.size > 0 else (np.array([]), np.array([]), np.array([]))
-        )
-        h2, s2, v2 = (
-            cv2.split(right_cheek_roi) if right_cheek_roi.size > 0 else (np.array([]), np.array([]), np.array([]))
-        )
+        h1, s1, v1 = cv2.split(left_cheek_roi) if left_cheek_roi.size > 0 else (np.array([]), np.array([]), np.array([]))
+        h2, s2, v2 = cv2.split(right_cheek_roi) if right_cheek_roi.size > 0 else (np.array([]), np.array([]), np.array([]))
 
         # Combine cheek data
         h = np.concatenate([h1.flatten(), h2.flatten()])

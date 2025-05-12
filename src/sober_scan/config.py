@@ -33,68 +33,44 @@ class ModelType(str, Enum):
     """Types of models that can be downloaded."""
 
     DLIB_SHAPE_PREDICTOR = "dlib-shape-predictor"
-    TRADITIONAL_SVM = "traditional-svm"
-    DEEP_CNN = "deep-cnn"
-    DEEP_GNN = "deep-gnn"
-    TEMPORAL_LSTM = "temporal-lstm"
+    SVM = "svm"
+    NB = "nb"
+    KNN = "knn"
+    RF = "rf"
+    CNN = "cnn"
     ALL = "all"
 
 
 # Model URLs
 MODEL_URLS = {
-    ModelType.DLIB_SHAPE_PREDICTOR: "https://github.com/davisking/dlib-models/raw/master/shape_predictor_68_face_landmarks_GTX.dat.bz2",
-    ModelType.TRADITIONAL_SVM: "N/A",
-    ModelType.DEEP_CNN: "https://github.com/opencv/opencv_zoo/raw/refs/heads/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx",
-    ModelType.DEEP_GNN: "https://github.com/ZhaoJ9014/face.evoLVe/raw/master/misc/model_ir_se50.pth",
-    ModelType.TEMPORAL_LSTM: "N/A",
+    ModelType.DLIB_SHAPE_PREDICTOR: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/shape_predictor_68_face_landmarks.dat",
+    ModelType.SVM: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/drowsiness_svm.joblib",
+    ModelType.NB: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/drowsiness_nb.joblib",
+    ModelType.KNN: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/drowsiness_knn.joblib",
+    ModelType.RF: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/drowsiness_rf.joblib",
+    ModelType.CNN: "https://github.com/Sang-Buster/Sober-Scan/releases/download/v0.0.1/intoxication_cnn.pt",
 }
 
 # Model file names
 MODEL_FILENAMES = {
     ModelType.DLIB_SHAPE_PREDICTOR: "shape_predictor_68_face_landmarks.dat",
-    ModelType.TRADITIONAL_SVM: "traditional_svm.joblib",
-    ModelType.DEEP_CNN: "deep_cnn.pt",
-    ModelType.DEEP_GNN: "graph_nn.pt",
-    ModelType.TEMPORAL_LSTM: "lstm_temporal.pt",
+    ModelType.SVM: "svm.joblib",
+    ModelType.NB: "nb.joblib",
+    ModelType.KNN: "knn.joblib",
+    ModelType.RF: "rf.joblib",
+    ModelType.CNN: "cnn.pt",
 }
 
 # Model descriptions
 MODEL_DESCRIPTIONS = {
     ModelType.DLIB_SHAPE_PREDICTOR: "68-point facial landmark predictor model from dlib",
-    ModelType.TRADITIONAL_SVM: "Pre-trained SVM model for intoxication classification",
-    ModelType.DEEP_CNN: "Pre-trained CNN model for intoxication detection from images",
-    ModelType.DEEP_GNN: "Pre-trained Graph Neural Network for landmark-based intoxication detection",
-    ModelType.TEMPORAL_LSTM: "Pre-trained LSTM model for video-based intoxication detection",
+    ModelType.SVM: "Pre-trained SVM model for drowsiness detection",
+    ModelType.NB: "Pre-trained Naive Bayes model for drowsiness detection",
+    ModelType.KNN: "Pre-trained K-Nearest Neighbors model for drowsiness detection",
+    ModelType.RF: "Pre-trained Random Forest model for drowsiness detection",
+    ModelType.CNN: "Pre-trained CNN model for intoxication detection from images",
 }
 
-
-# Mapping BAC level to probability thresholds
-BAC_THRESHOLDS = {
-    BACLevel.SOBER: 0.3,  # Below this probability -> sober
-    BACLevel.MILD: 0.5,  # Between sober and this -> mild
-    BACLevel.MODERATE: 0.7,  # Between mild and this -> moderate
-    BACLevel.SEVERE: 1.0,  # Above moderate -> severe
-}
-
-# Model paths and configurations
-DEFAULT_MODELS = {
-    "traditional": {
-        "path": str(MODEL_DIR / "traditional_svm.joblib"),
-        "type": "svm",
-    },
-    "cnn": {
-        "path": str(MODEL_DIR / "deep_cnn.pt"),
-        "input_size": (224, 224),
-    },
-    "gnn": {
-        "path": str(MODEL_DIR / "graph_nn.pt"),
-        "landmarks": 68,
-    },
-    "video": {
-        "path": str(MODEL_DIR / "lstm_temporal.pt"),
-        "sequence_length": 16,
-    },
-}
 
 # Feature extraction parameters
 FEATURE_PARAMS = {

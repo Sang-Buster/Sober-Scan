@@ -4,13 +4,13 @@ import logging
 import logging.config
 import os
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Union
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-from sober_scan.config import BAC_THRESHOLDS, LOGGING_CONFIG, BACLevel
+from sober_scan.config import LOGGING_CONFIG
 
 # Setup logging
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -114,38 +114,131 @@ def draw_landmarks(image: np.ndarray, landmarks: np.ndarray) -> np.ndarray:
     return vis_img
 
 
-def draw_intoxication_result(image: np.ndarray, bac_level: BACLevel, confidence: float) -> np.ndarray:
-    """Draw intoxication results on an image.
+def draw_intoxication_result(image, prediction, redness, confidence, face_rect=None):
+    """Draw intoxication detection results on an image.
+
+    Args:
+        image: Input image (NumPy array)
+        prediction: Prediction label ("INTOXICATED" or "SOBER")
+        redness: Facial redness value
+        confidence: Confidence score of the prediction
+        face_rect: Optional face rectangle coordinates (x1, y1, x2, y2)
+
+    Returns:
+        Image with detection results drawn
+    """
+    image_copy = image.copy()
+    h, w = image_copy.shape[:2]
+
+    # Draw face rectangle if provided
+    if face_rect is not None:
+        x1, y1, x2, y2 = face_rect
+        cv2.rectangle(image_copy, (x1, y1), (x2, y2), (255, 0, 0), 2)
+
+    # Determine color and text based on prediction
+    if prediction == "INTOXICATED":
+        color = (255, 0, 0)  # Red for intoxicated
+        status_text = "INTOXICATED"
+    else:
+        color = (0, 255, 0)  # Green for sober
+        status_text = "SOBER"
+
+    # Create a semi-transparent overlay for the text background
+    overlay = image_copy.copy()
+    cv2.rectangle(overlay, (0, h - 80), (w, h), (0, 0, 0), -1)
+
+    # Add the overlay with transparency
+    alpha = 0.6
+    cv2.addWeighted(overlay, alpha, image_copy, 1 - alpha, 0, image_copy)
+
+    # Add text
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(image_copy, f"Status: {status_text}", (10, h - 50), font, 0.8, color, 2)
+    cv2.putText(image_copy, f"Redness: {redness:.2f}", (10, h - 25), font, 0.8, (255, 255, 255), 2)
+    cv2.putText(image_copy, f"Confidence: {confidence:.2f}", (w - 230, h - 25), font, 0.8, (255, 255, 255), 2)
+
+    return image_copy
+
+
+def draw_drowsiness_result(image, prediction, ear, confidence, mar=None, face_rect=None):
+    """Draw drowsiness detection results on an image.
 
     Args:
         image: Input image
-        bac_level: Detected BAC level
-        confidence: Confidence score of the detection
+        prediction: Drowsiness prediction (ALERT or DROWSY)
+        ear: Eye aspect ratio
+        confidence: Confidence score for the prediction
+        mar: Optional mouth aspect ratio
+        face_rect: Optional face rectangle coordinates (x1, y1, x2, y2)
 
     Returns:
-        Image with detection result drawn on it
+        Image with results drawn
     """
     result_img = image.copy()
-    h, w = result_img.shape[:2]
+    height, width = result_img.shape[:2]
 
-    # Define colors for different BAC levels
-    colors = {
-        BACLevel.SOBER: (0, 255, 0),  # Green
-        BACLevel.MILD: (0, 255, 255),  # Yellow
-        BACLevel.MODERATE: (0, 165, 255),  # Orange
-        BACLevel.SEVERE: (0, 0, 255),  # Red
-    }
+    # Draw face rectangle if provided
+    if face_rect is not None:
+        x1, y1, x2, y2 = face_rect
+        cv2.rectangle(result_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
-    # Status text based on BAC level
-    status_text = f"{bac_level.name}: {confidence:.2f}"
-
-    # Add a semi-transparent overlay at the bottom
+    # Create a semi-transparent overlay for the results
     overlay = result_img.copy()
-    cv2.rectangle(overlay, (0, h - 60), (w, h), (0, 0, 0), -1)
-    cv2.addWeighted(overlay, 0.5, result_img, 0.5, 0, result_img)
+    cv2.rectangle(overlay, (0, 0), (width, 80 if mar is not None else 60), (0, 0, 0), -1)
 
-    # Add the BAC level text
-    cv2.putText(result_img, status_text, (10, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.8, colors[bac_level], 2)
+    # Set text color based on drowsiness prediction
+    if prediction == "ALERT":
+        text_color = (0, 255, 0)  # Green for alert
+    elif prediction == "DROWSY":
+        text_color = (0, 0, 255)  # Red for drowsy
+    else:
+        text_color = (255, 255, 255)  # White for unknown
+
+    # Draw text
+    cv2.putText(
+        overlay,
+        f"Status: {prediction}",
+        (10, 30),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        text_color,
+        2,
+    )
+    cv2.putText(
+        overlay,
+        f"EAR: {ear:.2f}",
+        (width // 2 - 50, 30),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (255, 255, 255),
+        2,
+    )
+
+    # Add MAR if provided
+    if mar is not None:
+        cv2.putText(
+            overlay,
+            f"MAR: {mar:.2f}",
+            (width // 2 - 50, 60),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (255, 255, 255),
+            2,
+        )
+
+    cv2.putText(
+        overlay,
+        f"Conf: {confidence:.2f}",
+        (width - 180, 30),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (255, 255, 255),
+        2,
+    )
+
+    # Apply the overlay with transparency
+    alpha = 0.7
+    cv2.addWeighted(overlay, alpha, result_img, 1 - alpha, 0, result_img)
 
     return result_img
 
@@ -173,32 +266,6 @@ def plot_features(features: Dict[str, float], save_path: Optional[Union[str, Pat
         logger.debug(f"Feature plot saved to {save_path}")
 
     plt.close()
-
-
-def bac_probability_to_level(probability: float) -> Tuple[BACLevel, float]:
-    """Convert intoxication probability to BAC level.
-
-    Args:
-        probability: Model's prediction probability (0.0-1.0)
-
-    Returns:
-        Tuple of (BAC level enum, confidence score)
-    """
-    # Determine BAC level based on probability thresholds
-    if probability < BAC_THRESHOLDS[BACLevel.SOBER]:
-        return BACLevel.SOBER, 1.0 - (probability / BAC_THRESHOLDS[BACLevel.SOBER])
-    elif probability < BAC_THRESHOLDS[BACLevel.MILD]:
-        range_size = BAC_THRESHOLDS[BACLevel.MILD] - BAC_THRESHOLDS[BACLevel.SOBER]
-        normalized = (probability - BAC_THRESHOLDS[BACLevel.SOBER]) / range_size
-        return BACLevel.MILD, normalized
-    elif probability < BAC_THRESHOLDS[BACLevel.MODERATE]:
-        range_size = BAC_THRESHOLDS[BACLevel.MODERATE] - BAC_THRESHOLDS[BACLevel.MILD]
-        normalized = (probability - BAC_THRESHOLDS[BACLevel.MILD]) / range_size
-        return BACLevel.MODERATE, normalized
-    else:
-        range_size = BAC_THRESHOLDS[BACLevel.SEVERE] - BAC_THRESHOLDS[BACLevel.MODERATE]
-        normalized = (probability - BAC_THRESHOLDS[BACLevel.MODERATE]) / range_size
-        return BACLevel.SEVERE, normalized
 
 
 def create_progress_bar(total: int, prefix: str = "", suffix: str = "", length: int = 50, fill: str = "█") -> None:

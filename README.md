@@ -1,6 +1,6 @@
 <div align="center">
    <a href="https://github.com/Sang-Buster/Sober-Scan">
-      <img src="/README.assets/logo.png" width=40% alt="logo">
+      <img src="https://raw.githubusercontent.com/Sang-Buster/Sober-Scan/refs/heads/main/README.assets/logo.png" width=40% alt="logo">
    </a>
    <h1>Sober Scan</h1>
    <a href="https://deepwiki.com/Sang-Buster/Sober-Scan"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
@@ -121,6 +121,22 @@ sober-scan --help
 📂Sober-Scan
  ┣ 📂src                         // Source Code
  ┃ ┗ 📦sober_scan                  // Python package
+ ┃ ┃ ┣ 📂commands                      // Command line interface
+ ┃ ┃ ┃ ┣ 📄detect.py
+ ┃ ┃ ┃ ┣ 📄model.py
+ ┃ ┃ ┃ ┗ 📄train.py
+ ┃ ┃ ┣ 📂models                        // Model files
+ ┃ ┃ ┃ ┣ 📄cnn.py
+ ┃ ┃ ┃ ┣ 📄knn.py
+ ┃ ┃ ┃ ┣ 📄nb.py
+ ┃ ┃ ┃ ┣ 📄rf.py
+ ┃ ┃ ┃ ┗ 📄svm.py
+ ┃ ┃ ┣ 📂tests                        // Test files
+ ┃ ┃ ┃ ┗ 📄test_cli.py
+ ┃ ┃ ┣ 📄cli.py                      // CLI interface
+ ┃ ┃ ┣ 📄config.py                   // Configuration
+ ┃ ┃ ┣ 📄feature_extraction.py       // Feature extraction
+ ┃ ┃ ┗ 📄utils.py                    // Utility functions
  ┣ 📄.gitignore                  // Git ignore patterns (env, cache, database)
  ┣ 📄.pre-commit-config.yaml     // Pre-commit hooks (ruff, commit message)
  ┣ 📄.pre-commit_msg_template.py // Commit message format validator

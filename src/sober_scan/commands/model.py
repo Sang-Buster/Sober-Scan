@@ -11,8 +11,12 @@ import typer
 from sober_scan.config import MODEL_DESCRIPTIONS, MODEL_DIR, MODEL_FILENAMES, MODEL_URLS, ModelType
 from sober_scan.utils import create_progress_bar, logger, setup_logger
 
-# Create model command app
-model_app = typer.Typer(help="Manage intoxication detection models")
+# Create Typer app for model subcommands
+model_app = typer.Typer(
+    name="model",
+    help="Manage drowsiness and intoxication detection models",
+    no_args_is_help=True,
+)
 
 
 def download_file(url: str, destination: Path, chunk_size: int = 8192, verbose: bool = False) -> bool:
@@ -87,9 +91,7 @@ def extract_bz2(source: Path, destination: Path) -> bool:
 def list_models(
     available: bool = typer.Option(False, "--available", "-a", help="List all available models for download"),
     installed: bool = typer.Option(False, "--installed", "-i", help="List all installed models"),
-    output_dir: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Custom directory to check for installed models"
-    ),
+    output_dir: Optional[Path] = typer.Option(None, "--output", "-o", help="Custom directory to check for installed models"),
 ) -> None:
     """List available models for download or installed models."""
     if not available and not installed:
@@ -126,9 +128,7 @@ def list_models(
 @model_app.command("download")
 def download_model(
     model_type: ModelType = typer.Argument(..., help="Type of model to download"),
-    output_dir: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Custom directory to store downloaded models"
-    ),
+    output_dir: Optional[Path] = typer.Option(None, "--output", "-o", help="Custom directory to store downloaded models"),
     force: bool = typer.Option(False, "--force", "-f", help="Force download even if model already exists"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show verbose output"),
 ) -> None:
