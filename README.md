@@ -155,12 +155,12 @@ sober-scan --help
  ┃ ┃ ┃ ┣ 📄nb.py
  ┃ ┃ ┃ ┣ 📄rf.py
  ┃ ┃ ┃ ┗ 📄svm.py
- ┃ ┃ ┣ 📂tests                        // Test files
+ ┃ ┃ ┣ 📂tests                         // Test files
  ┃ ┃ ┃ ┗ 📄test_cli.py
- ┃ ┃ ┣ 📄cli.py                      // CLI interface
- ┃ ┃ ┣ 📄config.py                   // Configuration
- ┃ ┃ ┣ 📄feature_extraction.py       // Feature extraction
- ┃ ┃ ┗ 📄utils.py                    // Utility functions
+ ┃ ┃ ┣ 📄cli.py                        // CLI interface
+ ┃ ┃ ┣ 📄config.py                     // Configuration
+ ┃ ┃ ┣ 📄feature_extraction.py         // Feature extraction
+ ┃ ┃ ┗ 📄utils.py                      // Utility functions
  ┣ 📄.gitignore                  // Git ignore patterns (env, cache, database)
  ┣ 📄.pre-commit-config.yaml     // Pre-commit hooks (ruff, commit message)
  ┣ 📄.pre-commit_msg_template.py // Commit message format validator
