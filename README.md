@@ -8,7 +8,6 @@
    <a href="https://github.com/Sang-Buster/Sober-Scan/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Sang-Buster/Sober-Scan" alt="License"></a>
    <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json" alt="uv"></a>
    <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
-   <a href="https://pepy.tech/project/sober-scan"><img src="https://img.shields.io/pypi/dm/sober-scan" alt="Downloads"></a>
    <a href="https://github.com/Sang-Buster/Sober-Scan/commits/main"><img src="https://img.shields.io/github/last-commit/Sang-Buster/Sober-Scan" alt="Last Commit"></a>
    <h6><small>A CLI tool that detects alcohol intoxication and drowsiness from facial images.</small></h6>
    <p><b>#Alcohol Intoxication &emsp; #Facial Recognition &emsp; #CLI</b></p>
