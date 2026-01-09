@@ -7,6 +7,7 @@ from typing import Optional
 import typer
 
 from sober_scan.commands.detect import detect_image_command
+from sober_scan.commands.manage import manage_app
 from sober_scan.commands.model import model_app
 from sober_scan.commands.train import train_model_command
 
@@ -64,6 +65,9 @@ app.command(name="train", no_args_is_help=True)(train_model_command)
 
 # Add model commands as a subcommand group
 app.add_typer(model_app, name="model")
+
+# Add management commands as a subcommand group
+app.add_typer(manage_app, name="manage")
 
 
 if __name__ == "__main__":

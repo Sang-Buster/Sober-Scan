@@ -1,4 +1,4 @@
-"""CNN model for intoxication detection."""
+"""CNN model for intoxication detection with data augmentation and fine-tuning support."""
 
 import os
 from pathlib import Path
@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torchvision import models
+from torchvision import models, transforms
 
 
 class IntoxicationCNN(nn.Module):
@@ -53,14 +53,15 @@ class IntoxicationCNN(nn.Module):
 
 
 class IntoxicationDetector:
-    """CNN-based intoxication detector."""
+    """CNN-based intoxication detector with data augmentation and fine-tuning support."""
 
-    def __init__(self, image_size=(224, 224), infrared_mode=True):
+    def __init__(self, image_size=(224, 224), infrared_mode=True, use_augmentation=True):
         """Initialize the model.
 
         Args:
             image_size: Input image size (height, width)
             infrared_mode: Whether to use infrared images (default) or RGB
+            use_augmentation: Whether to use data augmentation during training
         """
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.image_size = image_size
@@ -68,6 +69,25 @@ class IntoxicationDetector:
         self.in_channels = 1 if infrared_mode else 3
         self.model = IntoxicationCNN(in_channels=self.in_channels).to(self.device)
         self.is_trained = False
+        self.use_augmentation = use_augmentation
+        self.training_history = {
+            "train_loss": [],
+            "train_acc": [],
+            "val_loss": [],
+            "val_acc": [],
+            "epochs_trained": 0,
+        }
+        
+        # Data augmentation transforms
+        if use_augmentation:
+            self.train_transforms = transforms.Compose([
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomRotation(degrees=10),
+                transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2) if not infrared_mode else transforms.Lambda(lambda x: x),
+                transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+            ])
+        else:
+            self.train_transforms = None
 
     def preprocess_image(self, image):
         """Preprocess an image for the model.
@@ -112,18 +132,43 @@ class IntoxicationDetector:
 
         return tensor.to(self.device)
 
-    def train(self, dataset, batch_size=16, epochs=20, learning_rate=0.0001):
-        """Train the model.
+    def apply_augmentation(self, tensor):
+        """Apply data augmentation to a tensor.
+        
+        Args:
+            tensor: Input tensor
+            
+        Returns:
+            Augmented tensor
+        """
+        if self.train_transforms is not None:
+            return self.train_transforms(tensor)
+        return tensor
+
+    def train(self, dataset, batch_size=16, epochs=20, learning_rate=0.0001, continue_training=False):
+        """Train the model with optional fine-tuning.
 
         Args:
             dataset: PyTorch Dataset containing (image, label) pairs
             batch_size: Batch size for training
             epochs: Number of training epochs
             learning_rate: Learning rate for optimization
+            continue_training: If True, continue training from current weights (fine-tuning mode)
 
         Returns:
             Self for chaining
         """
+        if not continue_training:
+            # Reset model if not continuing training
+            self.model = IntoxicationCNN(in_channels=self.in_channels).to(self.device)
+            self.training_history = {
+                "train_loss": [],
+                "train_acc": [],
+                "val_loss": [],
+                "val_acc": [],
+                "epochs_trained": 0,
+            }
+        
         # Split dataset into train and validation
         train_size = int(0.8 * len(dataset))
         val_size = len(dataset) - train_size
@@ -189,6 +234,10 @@ class IntoxicationDetector:
             train_total = 0
 
             for inputs, labels in train_loader:
+                # Apply data augmentation if enabled
+                if self.use_augmentation:
+                    inputs = torch.stack([self.apply_augmentation(img) for img in inputs])
+                
                 inputs = inputs.to(self.device)
                 labels = labels.float().to(self.device)
 
@@ -250,6 +299,13 @@ class IntoxicationDetector:
             train_acc = train_correct / train_total
             val_loss = val_loss / val_total
             val_acc = val_correct / val_total
+            
+            # Store training history
+            self.training_history["train_loss"].append(train_loss)
+            self.training_history["train_acc"].append(train_acc)
+            self.training_history["val_loss"].append(val_loss)
+            self.training_history["val_acc"].append(val_acc)
+            self.training_history["epochs_trained"] += 1
 
             print(
                 f"Epoch {epoch + 1}/{epochs} - "
@@ -307,7 +363,7 @@ class IntoxicationDetector:
         return prediction, output
 
     def save(self, filepath):
-        """Save the model to disk.
+        """Save the model to disk with training history and metadata.
 
         Args:
             filepath: Path to save the model
@@ -318,6 +374,8 @@ class IntoxicationDetector:
             "infrared_mode": self.infrared_mode,
             "in_channels": self.in_channels,
             "is_trained": self.is_trained,
+            "use_augmentation": self.use_augmentation,
+            "training_history": self.training_history,
         }
 
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -330,7 +388,7 @@ class IntoxicationDetector:
         torch.save(self.model.state_dict(), filepath)
 
     def load(self, filepath):
-        """Load the model from disk.
+        """Load the model from disk with training history and metadata.
 
         Args:
             filepath: Path to load the model from
@@ -346,9 +404,26 @@ class IntoxicationDetector:
             self.infrared_mode = model_info["infrared_mode"]
             self.in_channels = model_info["in_channels"]
             self.is_trained = model_info["is_trained"]
+            self.use_augmentation = model_info.get("use_augmentation", True)
+            self.training_history = model_info.get("training_history", {
+                "train_loss": [],
+                "train_acc": [],
+                "val_loss": [],
+                "val_acc": [],
+                "epochs_trained": 0,
+            })
 
             # Create model with correct configuration
             self.model = IntoxicationCNN(in_channels=self.in_channels).to(self.device)
+            
+            # Reinitialize augmentation transforms
+            if self.use_augmentation:
+                self.train_transforms = transforms.Compose([
+                    transforms.RandomHorizontalFlip(p=0.5),
+                    transforms.RandomRotation(degrees=10),
+                    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2) if not self.infrared_mode else transforms.Lambda(lambda x: x),
+                    transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+                ])
 
         # Load model weights
         self.model.load_state_dict(torch.load(filepath, map_location=self.device))

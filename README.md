@@ -62,16 +62,62 @@ sober-scan --help
 ---
 
 <div align="center">
+  <h2>✨ New Features</h2>
+</div>
+
+### 🔄 Incremental Learning & Model Management
+
+Sober-Scan now supports **incremental learning**, allowing you to update models with new data without full retraining:
+
+- **Incremental Learning**: Update SVM, Naive Bayes, KNN, and RF models with new data
+- **CNN Fine-Tuning**: Continue training CNN models from existing weights
+- **Data Augmentation**: Automatic augmentation for improved CNN accuracy
+- **Model Versioning**: Automatic backups and version control for all models
+- **Dataset Management**: Register, merge, split, and organize datasets
+
+**Quick Examples:**
+
+```bash
+# Fine-tune CNN with new data (recommended for adding data)
+sober-scan train /path/to/new_data \
+  --model cnn \
+  --model-path models/intoxication_cnn.pt \
+  --continue-training \
+  --backup \
+  --save-model
+
+# Incremental learning with Naive Bayes
+sober-scan train /path/to/new_data \
+  --model nb \
+  --incremental \
+  --save-model
+
+# Manage model versions
+sober-scan manage version list intoxication_cnn
+sober-scan manage version restore intoxication_cnn --version <timestamp>
+
+# Manage datasets
+sober-scan manage dataset register my_data /path/to/data
+sober-scan manage dataset merge dataset1,dataset2 combined
+```
+
+📖 **See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for complete command reference and examples.**
+
+---
+
+<div align="center">
   <h2>👨‍💻 Development Setup</h2>
 </div>
 
 1. **Clone the repository and navigate to project folder:**
+
    ```bash
    git clone https://github.com/Sang-Buster/Sober-Scan
    cd Sober-Scan
    ```
 
 2. **Install uv first:**
+
    ```bash
    # macOS/Linux
    curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -83,11 +129,13 @@ sober-scan --help
    ```
 
 3. **Create a virtual environment at `Sober-Scan/.venv/`:**
+
    ```bash
    uv venv --python 3.10
    ```
 
 4. **Activate the virtual environment:**
+
    ```bash
    # macOS/Linux
    source .venv/bin/activate
@@ -99,28 +147,34 @@ sober-scan --help
    ```
 
 5. **Install the required packages:**
+
    ```bash
    uv pip install -e .
    ```
 
 6. **Install ruff and pre-commit:**
+
    ```bash
    uv pip install ruff pre-commit
    ```
+
    - `ruff` is a super fast Python linter and formatter.
    - `pre-commit` helps maintain code quality by running automated checks before commits are made.
 
 7. **Install git hooks:**
+
    ```bash
    pre-commit install --hook-type commit-msg --hook-type pre-commit --hook-type pre-push
    ```
 
    These hooks perform different checks at various stages:
+
    - `commit-msg`: Ensures commit messages follow the conventional format
    - `pre-commit`: Runs Ruff linting and formatting checks before each commit
    - `pre-push`: Performs final validation before pushing to remote
-  
+
 8. **Code Linting:**
+
    ```bash
    ruff check
    ruff check --fix
@@ -129,10 +183,10 @@ sober-scan --help
    ruff format
    ```
 
-9.  **Run the application:**
-      ```bash
-      uv run src/sober_scan/cli.py
-      ```
+9. **Run the application:**
+   ```bash
+   uv run src/sober_scan/cli.py
+   ```
 
 ---
 
@@ -168,4 +222,4 @@ sober-scan --help
  ┣ 📄README.md                   // Project documentation
  ┣ 📄pyproject.toml              // Project configuration
  ┗ 📄uv.lock                     // Lock file
- ```
+```

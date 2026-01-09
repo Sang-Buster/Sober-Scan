@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from sober_scan.config import MODEL_DIR
 from sober_scan.feature_extraction import calculate_eye_aspect_ratio, detect_face_and_landmarks
+from sober_scan.model_management import ModelVersionManager
 from sober_scan.models.cnn import IntoxicationDetector as CNNDetector
 
 # Import drowsiness detection models
@@ -480,6 +481,14 @@ def train_model_command(
     use_test_data: bool = typer.Option(
         False, "--test-data", help="Use synthetic test data instead of real images (for debugging)"
     ),
+    # Incremental learning parameters
+    incremental: bool = typer.Option(
+        False, "--incremental", help="Use incremental learning (update existing model with new data)"
+    ),
+    use_incremental_svm: bool = typer.Option(
+        False, "--use-incremental-svm", help="Use SGDClassifier for SVM (supports incremental learning)"
+    ),
+    backup_model: bool = typer.Option(True, "--backup", help="Backup existing model before training"),
     # CNN-specific parameters
     batch_size: int = typer.Option(32, "--batch-size", help="Batch size for CNN training"),
     epochs: int = typer.Option(10, "--epochs", help="Number of epochs for CNN training"),
@@ -492,6 +501,8 @@ def train_model_command(
     use_cross_validation: bool = typer.Option(
         False, "--use-cross-validation", help="Use k-fold cross-validation for more robust evaluation"
     ),
+    use_augmentation: bool = typer.Option(True, "--augmentation", help="Use data augmentation for CNN training"),
+    continue_training: bool = typer.Option(False, "--continue-training", help="Continue training from existing CNN weights"),
     # Model-specific parameters
     svm_c: float = typer.Option(0.1, "--svm-c", help="Regularization parameter for SVM (smaller values increase regularization)"),
     svm_kernel: str = typer.Option("rbf", "--svm-kernel", help="Kernel type for SVM"),
@@ -528,6 +539,9 @@ def train_model_command(
     """
     # Setup logger
     setup_logger(verbose)
+
+    # Initialize model version manager
+    version_manager = ModelVersionManager(save_path)
 
     # Create output directory if we'll be saving model or results
     if save_model:
@@ -567,22 +581,126 @@ def train_model_command(
         try:
             typer.echo("Training CNN model for intoxication detection...")
 
-            # If model_path is provided, inform the user
-            if model_path:
-                typer.echo(f"Will attempt to continue training from existing model: {model_path}")
+            # Initialize model with augmentation setting
+            model = CNNDetector(image_size=(image_size, image_size), infrared_mode=infrared_mode, use_augmentation=use_augmentation)
 
-            model, metrics = train_intoxication_cnn(
+            # If model_path is provided or continue_training is set, load existing model
+            if model_path and model_path.exists():
+                typer.echo(f"Loading existing model from: {model_path}")
+                
+                # Backup existing model if requested
+                if backup_model:
+                    backup_path = version_manager.backup_model(
+                        model_path, notes=f"Pre-training backup before adding data from {data_folder}"
+                    )
+                    if backup_path:
+                        typer.echo(f"Model backed up to: {backup_path}")
+                
+                model.load(model_path)
+                typer.echo(f"Previous training: {model.training_history['epochs_trained']} epochs")
+                
+                if continue_training:
+                    typer.echo("Continuing training from existing weights (fine-tuning mode)")
+            elif continue_training:
+                typer.echo("Warning: --continue-training set but no model found. Training from scratch.")
+
+            # Create dataset and train
+            dataset = IntoxicationDataset(
                 data_folder=data_folder,
-                batch_size=batch_size,
-                epochs=epochs,
-                learning_rate=learning_rate,
-                infrared_mode=infrared_mode,
                 image_size=(image_size, image_size),
-                test_size=test_size,
-                random_seed=random_seed,
+                infrared_mode=infrared_mode,
                 use_face_detection=use_face_detection,
-                use_cross_validation=use_cross_validation,
             )
+
+            if len(dataset) == 0:
+                raise ValueError(
+                    f"""No images found in {data_folder}, please ensure this folder structure is correct:
+                    {data_folder}/
+                    ├── sober/
+                    │   ├── img1.jpg
+                    │   └── img2.jpg
+                    └── drunk/
+                        ├── img1.jpg
+                        └── img2.jpg
+                    """
+                )
+
+            # Print dataset stats
+            typer.echo(f"Dataset loaded with {len(dataset)} images")
+
+            # Calculate class distribution
+            labels = [label for _, label in dataset.samples]
+            sober_count = sum(1 for label in labels if label == 0)
+            intoxicated_count = sum(1 for label in labels if label == 1)
+            typer.echo(f"Class distribution: {sober_count} sober, {intoxicated_count} intoxicated/drunk")
+
+            # Train the model
+            typer.echo(f"Training CNN model for {epochs} epochs...")
+            model.train(dataset, batch_size=batch_size, epochs=epochs, learning_rate=learning_rate, continue_training=continue_training)
+
+            # Evaluate on test set
+            typer.echo("Evaluating model on test set...")
+            train_size = int((1 - test_size) * len(dataset))
+            test_size_count = len(dataset) - train_size
+            train_dataset, test_dataset = torch.utils.data.random_split(
+                dataset, [train_size, test_size_count], generator=torch.Generator().manual_seed(random_seed)
+            )
+
+            test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+            # Set model to evaluation mode
+            model.model.eval()
+
+            # Track predictions and ground truth
+            all_preds = []
+            all_labels = []
+            all_probs = []
+
+            # No gradients needed for evaluation
+            with torch.no_grad():
+                for inputs, labels_batch in test_loader:
+                    inputs = inputs.to(device)
+                    labels_batch = labels_batch.to(device)
+
+                    # Forward pass
+                    outputs = model.model(inputs).squeeze()
+
+                    # Convert outputs to predictions
+                    preds = (outputs > 0.5).float()
+
+                    # Store results
+                    all_preds.extend(preds.cpu().numpy())
+                    all_labels.extend(labels_batch.cpu().numpy())
+                    all_probs.extend(outputs.cpu().numpy())
+
+            # Calculate metrics
+            accuracy = accuracy_score(all_labels, all_preds)
+
+            # Try to calculate ROC AUC
+            try:
+                auc = roc_auc_score(all_labels, all_probs)
+                typer.echo(f"ROC AUC: {auc:.4f}")
+            except Exception as e:
+                typer.echo(f"Could not calculate ROC AUC: {e}")
+                auc = None
+
+            # Print classification report
+            target_names = ["Sober", "Drunk"]
+            report = classification_report(all_labels, all_preds, target_names=target_names)
+
+            # Confusion matrix
+            cm = confusion_matrix(all_labels, all_preds)
+
+            metrics = {
+                "accuracy": accuracy,
+                "auc": auc,
+                "report": report,
+                "confusion_matrix": cm,
+                "predictions": all_preds,
+                "labels": all_labels,
+                "probabilities": all_probs,
+            }
 
             # Print evaluation results
             typer.echo("\nTest Set Evaluation:")
@@ -618,8 +736,18 @@ def train_model_command(
                 model_save_path = save_path / model_filename
 
                 try:
+                    # Backup existing model before overwriting
+                    if model_save_path.exists() and backup_model:
+                        backup_path = version_manager.backup_model(
+                            model_save_path, notes="Auto-backup before saving newly trained model"
+                        )
+                        if backup_path:
+                            typer.echo(f"Previous model backed up to: {backup_path}")
+
+                    # Save the new model
                     model.save(model_save_path)
                     typer.echo(f"\nModel saved to {model_save_path}")
+                    typer.echo(f"Total epochs trained: {model.training_history['epochs_trained']}")
 
                     # Verify file was created
                     if os.path.exists(model_save_path):
@@ -642,5 +770,147 @@ def train_model_command(
                 traceback.print_exc()
             raise typer.Exit(code=1)
 
-    # Continue with existing drowsiness detection training code...
-    # ... existing code ...
+    # Drowsiness detection training for traditional ML models
+    typer.echo(f"Training {model_type_enum.value.upper()} model for drowsiness detection...")
+    
+    # Extract features from images
+    features, labels, successful_images = extract_features_from_folder(data_folder, ear_threshold)
+    
+    if len(features) == 0:
+        typer.echo("Error: No features could be extracted from images")
+        typer.echo("Make sure images contain visible faces with detectable landmarks")
+        raise typer.Exit(code=1)
+    
+    typer.echo(f"Successfully extracted features from {len(features)} images")
+    typer.echo(f"Class distribution: {sum(labels == 0)} alert, {sum(labels == 1)} drowsy")
+    
+    # Import the appropriate model
+    if model_type_enum == ModelType.SVM:
+        from sober_scan.models.svm import DrowsinessDetector
+        model = DrowsinessDetector(use_incremental=use_incremental_svm)
+    elif model_type_enum == ModelType.RANDOM_FOREST:
+        from sober_scan.models.rf import DrowsinessDetector
+        model = DrowsinessDetector()
+    elif model_type_enum == ModelType.KNN:
+        from sober_scan.models.knn import DrowsinessDetector
+        model = DrowsinessDetector()
+    elif model_type_enum == ModelType.NAIVE_BAYES:
+        from sober_scan.models.nb import DrowsinessDetector
+        model = DrowsinessDetector()
+    else:
+        typer.echo(f"Error: Model type {model_type_enum.value} not supported for drowsiness detection")
+        raise typer.Exit(code=1)
+    
+    # Load existing model if provided
+    if model_path and model_path.exists():
+        typer.echo(f"Loading existing model from: {model_path}")
+        if backup_model:
+            backup_path = version_manager.backup_model(model_path, notes="Pre-training backup")
+            if backup_path:
+                typer.echo(f"Model backed up to: {backup_path}")
+        model.load(model_path)
+    
+    # Train or incrementally update model
+    if incremental and model_path and model_path.exists():
+        typer.echo("Performing incremental update...")
+        if hasattr(model, 'partial_fit'):
+            model.partial_fit(features, labels)
+        elif hasattr(model, 'update_with_new_data'):
+            model.update_with_new_data(features, labels)
+        else:
+            typer.echo("Warning: Model does not support incremental learning, performing full retrain")
+            model.train(features, labels)
+    else:
+        typer.echo("Training model from scratch...")
+        model.train(features, labels)
+    
+    # Evaluate model using cross-validation
+    from sklearn.model_selection import cross_val_score
+    cv_scores = cross_val_score(model.pipeline, features, labels, cv=cv_folds, scoring='accuracy')
+    
+    typer.echo(f"\nCross-validation scores: {cv_scores}")
+    typer.echo(f"Mean CV accuracy: {cv_scores.mean():.4f} (+/- {cv_scores.std() * 2:.4f})")
+    
+    # Train/test split for final evaluation
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(
+        features, labels, test_size=test_size, random_state=random_seed, stratify=labels
+    )
+    
+    # Retrain on training set
+    model.train(X_train, y_train)
+    
+    # Evaluate on test set
+    y_pred = []
+    y_proba = []
+    for feat in X_test:
+        pred, prob = model.predict(feat)
+        y_pred.append(1 if pred == "DROWSY" else 0)
+        y_proba.append(prob)
+    
+    # Calculate metrics
+    accuracy = accuracy_score(y_test, y_pred)
+    typer.echo("\nTest Set Evaluation:")
+    typer.echo(f"Accuracy: {accuracy:.4f}")
+    
+    try:
+        auc = roc_auc_score(y_test, y_proba)
+        typer.echo(f"ROC AUC: {auc:.4f}")
+    except Exception as e:
+        typer.echo(f"Could not calculate ROC AUC: {e}")
+        auc = None
+    
+    # Classification report
+    target_names = ["Alert", "Drowsy"]
+    report = classification_report(y_test, y_pred, target_names=target_names)
+    typer.echo("\nClassification Report:")
+    typer.echo(report)
+    
+    # Confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    
+    # Visualize results if requested
+    if visualize_results:
+        if save_model:
+            evaluation_dir = save_path / "evaluation"
+            os.makedirs(evaluation_dir, exist_ok=True)
+            
+            # Plot confusion matrix
+            cm_path = evaluation_dir / f"drowsiness_{model_type_enum.value}_confusion_matrix.png"
+            plot_confusion_matrix(y_test, y_pred, cm_path)
+            typer.echo(f"Confusion matrix saved to: {cm_path}")
+            
+            # Plot ROC curve
+            if auc is not None:
+                roc_path = evaluation_dir / f"drowsiness_{model_type_enum.value}_roc_curve.png"
+                plot_roc_curve(y_test, y_proba, roc_path)
+                typer.echo(f"ROC curve saved to: {roc_path}")
+        else:
+            # Just show plots without saving
+            plot_confusion_matrix(y_test, y_pred)
+            if auc is not None:
+                plot_roc_curve(y_test, y_proba)
+    
+    # Save model if requested
+    if save_model:
+        model_filename = f"drowsiness_{model_type_enum.value}.joblib"
+        model_save_path = save_path / model_filename
+        
+        try:
+            if model_save_path.exists() and backup_model:
+                backup_path = version_manager.backup_model(model_save_path, notes="Auto-backup before saving")
+                if backup_path:
+                    typer.echo(f"Previous model backed up to: {backup_path}")
+            
+            model.save(model_save_path)
+            typer.echo(f"\nModel saved to {model_save_path}")
+            typer.echo(f"Total samples seen: {model.n_samples_seen}")
+            
+            if os.path.exists(model_save_path):
+                typer.echo(f"Verified: Model file exists ({os.path.getsize(model_save_path)} bytes)")
+        except Exception as e:
+            typer.echo(f"Error saving model: {e}")
+    else:
+        typer.echo("\nModel was not saved (use --save-model to save)")
+    
+    typer.echo("\nTraining complete!")
