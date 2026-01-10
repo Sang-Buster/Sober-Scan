@@ -2,7 +2,7 @@
 
 All notable changes to Sober-Scan will be documented in this file.
 
-## [Unreleased] - Major Feature Update 🎉
+## [0.0.5] - 2026-01-10
 
 ### Added - Incremental Learning & Model Management
 
