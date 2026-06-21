@@ -540,6 +540,22 @@ def train_model_command(
     # Setup logger
     setup_logger(verbose)
 
+    # Refuse to train a drowsiness "model": the previous pipeline computed
+    # labels by thresholding the very feature it then learned to predict
+    # (see `extract_features_from_folder`), so the apparent 100% accuracy
+    # was tautological. Drowsiness now uses the EAR rule directly in
+    # `sober-scan detect --type drowsiness`; no training is required.
+    if detection_type == DetectionType.DROWSINESS:
+        typer.echo(
+            "Error: drowsiness training has been removed. The previous models were "
+            "trained on labels derived from the model's own input feature (EAR "
+            "thresholded), producing a tautological 100% accuracy with no real "
+            "discriminative power.\n"
+            "Use `sober-scan detect --type drowsiness` instead \u2014 it applies the "
+            "EAR < 0.2 rule directly with no model file."
+        )
+        raise typer.Exit(code=1)
+
     # Initialize model version manager
     version_manager = ModelVersionManager(save_path)
 
