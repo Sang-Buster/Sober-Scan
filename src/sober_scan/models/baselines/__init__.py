@@ -9,10 +9,14 @@ Public surface:
 
 from sober_scan.models.baselines.handcrafted import HandcraftedFeaturesLR
 from sober_scan.models.baselines.imagenet import ImageNetFrozenLR
+from sober_scan.models.baselines.loso_cnn import LOSOTrainedCNN
 from sober_scan.models.baselines.majority import MajorityClassBaseline
+from sober_scan.models.baselines.siamese import SiameseDelta
 
 __all__ = [
     "HandcraftedFeaturesLR",
     "ImageNetFrozenLR",
+    "LOSOTrainedCNN",
     "MajorityClassBaseline",
+    "SiameseDelta",
 ]

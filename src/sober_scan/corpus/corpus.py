@@ -1,11 +1,32 @@
 """The ``IntoxicationCorpus``: a labeled photo collection."""
 
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import FrozenSet, Iterator, List, Tuple
+from typing import FrozenSet, Iterator, List, Optional, Tuple
 
 from sober_scan.corpus.parser import parse_testing_data_filename
 from sober_scan.corpus.photo import Photo
+from sober_scan.corpus.session_notes import nearest_bac, parse_session_notes
+
+_FILENAME_TIMESTAMP_PATTERN = re.compile(
+    r"^P\d+_ad_(?P<hhmm>\d{4})_\d+\.\w+$", re.IGNORECASE
+)
+_FILENAME_NO_BAC_PATTERN = re.compile(r"^P\d+_ad_\d+\.\w+$", re.IGNORECASE)
+
+
+def _filename_timestamp_minutes(filename: str) -> Optional[int]:
+    """Return the HHMM-encoded minutes-since-midnight, or None if absent."""
+    match = _FILENAME_TIMESTAMP_PATTERN.match(filename)
+    if not match:
+        return None
+    hhmm = match.group("hhmm")
+    hours = int(hhmm[:2])
+    minutes = int(hhmm[2:])
+    # Reject impossible times (e.g. 2575 \u2014 a 4-digit number that isn't a time).
+    if hours > 23 or minutes > 59:
+        return None
+    return hours * 60 + minutes
 
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
 
@@ -51,6 +72,67 @@ class IntoxicationCorpus:
         """Drop photos whose BAC could not be derived from the filename."""
         kept = tuple(photo for photo in self.photos if photo.bac is not None)
         return IntoxicationCorpus(photos=kept)
+
+    def with_session_notes_backfill(
+        self, *, notes_dir: Path
+    ) -> "IntoxicationCorpus":
+        """Resolve ``bac=None`` photos by reading the corresponding ``Px.txt``.
+
+        For each photo with no usable filename BAC we read
+        ``{notes_dir}/{subject_id}.txt`` and try to recover a BAC value:
+
+        - If the filename encodes a 4-digit ``HHMM`` timestamp, we use
+          the BAC measurement closest in time.
+        - If the filename is timestamp-less (e.g. ``P6_ad_1.jpg``), we
+          fall back to the *last* measurement in the session notes,
+          on the heuristic that those photos were taken after all
+          recorded measurements.
+
+        Photos whose BAC is already known are passed through unchanged.
+        Photos for which no matching ``.txt`` exists, or whose ``.txt``
+        contains no measurements, retain ``bac=None``.
+        """
+        notes_cache: dict = {}
+
+        def _measurements_for(subject_id: str):
+            if subject_id in notes_cache:
+                return notes_cache[subject_id]
+            path = Path(notes_dir) / f"{subject_id}.txt"
+            measurements = (
+                parse_session_notes(path.read_text()) if path.exists() else []
+            )
+            notes_cache[subject_id] = measurements
+            return measurements
+
+        new_photos: List[Photo] = []
+        for photo in self.photos:
+            if photo.bac is not None:
+                new_photos.append(photo)
+                continue
+            measurements = _measurements_for(photo.subject_id)
+            if not measurements:
+                new_photos.append(photo)
+                continue
+
+            filename = photo.path.name if photo.path is not None else ""
+            target_minutes = _filename_timestamp_minutes(filename)
+            if target_minutes is not None:
+                resolved = nearest_bac(
+                    target_minutes=target_minutes, measurements=measurements
+                )
+            elif _FILENAME_NO_BAC_PATTERN.match(filename):
+                # Heuristic: the photos with no timestamp were taken after
+                # all recorded measurements.
+                resolved = measurements[-1]
+            else:
+                resolved = None
+
+            if resolved is None:
+                new_photos.append(photo)
+            else:
+                new_photos.append(replace(photo, bac=resolved.bac))
+
+        return IntoxicationCorpus(photos=tuple(new_photos))
 
     def binary_labels(self, *, threshold: float) -> List[int]:
         """Return one ``0``/``1`` label per photo: ``1`` if ``bac >= threshold``.

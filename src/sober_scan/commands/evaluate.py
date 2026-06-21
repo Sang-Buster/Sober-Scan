@@ -20,7 +20,9 @@ from sober_scan.evaluation import LOSOReport, evaluate_baseline
 from sober_scan.models.baselines import (
     HandcraftedFeaturesLR,
     ImageNetFrozenLR,
+    LOSOTrainedCNN,
     MajorityClassBaseline,
+    SiameseDelta,
 )
 
 eval_app = typer.Typer(
@@ -31,17 +33,21 @@ eval_app = typer.Typer(
 
 
 class BaselineName(str, Enum):
-    """The Tier 1 baselines registered with ``evaluate baseline``."""
+    """The baselines registered with ``evaluate baseline``."""
 
     MAJORITY = "majority"
     HANDCRAFTED = "handcrafted"
     IMAGENET = "imagenet"
+    LOSO_CNN = "loso-cnn"
+    SIAMESE = "siamese"
 
 
 _BASELINE_FACTORIES: Dict[BaselineName, Callable] = {
     BaselineName.MAJORITY: MajorityClassBaseline,
     BaselineName.HANDCRAFTED: HandcraftedFeaturesLR,
     BaselineName.IMAGENET: ImageNetFrozenLR,
+    BaselineName.LOSO_CNN: LOSOTrainedCNN,
+    BaselineName.SIAMESE: SiameseDelta,
 }
 
 
@@ -123,7 +129,13 @@ def evaluate_baseline_command(
         typer.echo(f"Error: data folder not found: {data}")
         raise typer.Exit(code=1)
 
-    corpus = IntoxicationCorpus.from_folder(data).with_known_bac()
+    # Backfill ambiguous (timestamp-only) photos from sibling Px.txt session
+    # notes before filtering. If no .txt files exist this is a no-op.
+    corpus = (
+        IntoxicationCorpus.from_folder(data)
+        .with_session_notes_backfill(notes_dir=data)
+        .with_known_bac()
+    )
     if len(corpus) == 0:
         typer.echo(f"Error: no labeled photos found under {data}")
         raise typer.Exit(code=1)
