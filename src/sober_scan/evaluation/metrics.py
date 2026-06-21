@@ -12,7 +12,12 @@ from dataclasses import dataclass
 from typing import Optional, Sequence, Tuple
 
 import numpy as np
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_auc_score
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    brier_score_loss,
+    roc_auc_score,
+)
 
 
 @dataclass(frozen=True)
@@ -37,6 +42,7 @@ class LOSOReport:
     pooled_accuracy: float
     pooled_balanced_accuracy: float
     pooled_auc: Optional[float]
+    pooled_brier: float
 
 
 def aggregate(folds: Sequence[FoldResult]) -> LOSOReport:
@@ -44,6 +50,8 @@ def aggregate(folds: Sequence[FoldResult]) -> LOSOReport:
 
     Pooled AUC is ``None`` if the pooled labels contain only one class
     (rare in practice with LOSO, but possible with single-subject tests).
+    Pooled Brier (mean squared error between predicted probability and
+    true label) is always well-defined.
     """
     y_true = np.concatenate([f.y_true for f in folds])
     y_pred = np.concatenate([f.y_pred for f in folds])
@@ -60,4 +68,5 @@ def aggregate(folds: Sequence[FoldResult]) -> LOSOReport:
         pooled_accuracy=float(accuracy_score(y_true, y_pred)),
         pooled_balanced_accuracy=float(balanced_accuracy_score(y_true, y_pred)),
         pooled_auc=auc,
+        pooled_brier=float(brier_score_loss(y_true, y_score)),
     )

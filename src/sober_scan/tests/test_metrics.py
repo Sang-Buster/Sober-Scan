@@ -54,3 +54,17 @@ def test_balanced_accuracy_averages_per_class_recall() -> None:
 
     assert report.pooled_accuracy == 0.8
     assert report.pooled_balanced_accuracy == 0.5
+
+
+def test_pooled_brier_measures_probability_squared_error() -> None:
+    # Perfect probabilities -> Brier = 0.
+    perfect = [
+        _fold("P1", y_true=[0, 1], y_pred=[0, 1], y_score=[0.0, 1.0]),
+    ]
+    assert aggregate(perfect).pooled_brier == 0.0
+
+    # Calibrated 0.5 for everything on a balanced set -> Brier = 0.25.
+    halfway = [
+        _fold("P1", y_true=[0, 1, 0, 1], y_pred=[0, 1, 0, 1], y_score=[0.5, 0.5, 0.5, 0.5]),
+    ]
+    assert aggregate(halfway).pooled_brier == 0.25

@@ -7,6 +7,7 @@ Public surface:
 - ``MajorityClassBaseline`` \u2014 predicts the training-set prevalence
 """
 
+from sober_scan.models.baselines.calibrated import CalibratedBaseline
 from sober_scan.models.baselines.handcrafted import HandcraftedFeaturesLR
 from sober_scan.models.baselines.hybrid import HybridFeaturesLR
 from sober_scan.models.baselines.imagenet import ImageNetFrozenLR
@@ -15,6 +16,7 @@ from sober_scan.models.baselines.majority import MajorityClassBaseline
 from sober_scan.models.baselines.siamese import SiameseDelta
 
 __all__ = [
+    "CalibratedBaseline",
     "HandcraftedFeaturesLR",
     "HybridFeaturesLR",
     "ImageNetFrozenLR",
