@@ -19,6 +19,7 @@ from sober_scan.corpus import IntoxicationCorpus
 from sober_scan.evaluation import LOSOReport, evaluate_baseline
 from sober_scan.models.baselines import (
     HandcraftedFeaturesLR,
+    HybridFeaturesLR,
     ImageNetFrozenLR,
     LOSOTrainedCNN,
     MajorityClassBaseline,
@@ -38,6 +39,7 @@ class BaselineName(str, Enum):
     MAJORITY = "majority"
     HANDCRAFTED = "handcrafted"
     IMAGENET = "imagenet"
+    HYBRID = "hybrid"
     LOSO_CNN = "loso-cnn"
     SIAMESE = "siamese"
 
@@ -46,6 +48,7 @@ _BASELINE_FACTORIES: Dict[BaselineName, Callable] = {
     BaselineName.MAJORITY: MajorityClassBaseline,
     BaselineName.HANDCRAFTED: HandcraftedFeaturesLR,
     BaselineName.IMAGENET: ImageNetFrozenLR,
+    BaselineName.HYBRID: HybridFeaturesLR,
     BaselineName.LOSO_CNN: LOSOTrainedCNN,
     BaselineName.SIAMESE: SiameseDelta,
 }
