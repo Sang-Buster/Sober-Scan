@@ -105,11 +105,13 @@ class LOSOTrainedCNN:
         batch_size: int = 8,
         learning_rate: float = 1e-3,
         weight_decay: float = 1e-4,
+        seed: int = 0,
     ) -> None:
         self._epochs = epochs
         self._batch_size = batch_size
         self._learning_rate = learning_rate
         self._weight_decay = weight_decay
+        self._seed = seed
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._model: Optional[IntoxicationCNN] = None
         self._fallback_proba: float = 0.5
@@ -117,6 +119,13 @@ class LOSOTrainedCNN:
     def fit(
         self, train: IntoxicationCorpus, *, threshold: float
     ) -> "LOSOTrainedCNN":
+        # Set seeds so re-runs produce identical numbers. Without this,
+        # AUC drifts by ~0.03 between runs because of random init +
+        # random augmentation.
+        torch.manual_seed(self._seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(self._seed)
+
         labels = train.binary_labels(threshold=threshold)
         # Drop photos with no detectable face so the dataset doesn't carry
         # all-black placeholders into training.
@@ -134,8 +143,15 @@ class LOSOTrainedCNN:
 
         dataset = _PhotoTensorDataset(kept_photos, kept_labels, augment=True)
         # drop_last=True prevents single-sample batches that crash BatchNorm.
+        # generator+manual_seed makes the shuffle order deterministic too.
+        loader_generator = torch.Generator()
+        loader_generator.manual_seed(self._seed)
         loader = DataLoader(
-            dataset, batch_size=self._batch_size, shuffle=True, drop_last=True
+            dataset,
+            batch_size=self._batch_size,
+            shuffle=True,
+            drop_last=True,
+            generator=loader_generator,
         )
 
         self._model = IntoxicationCNN(in_channels=3).to(self._device)
