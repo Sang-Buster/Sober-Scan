@@ -7,6 +7,7 @@ from typing import Optional
 import typer
 
 from sober_scan.commands.detect import detect_image_command
+from sober_scan.commands.evaluate import eval_app
 from sober_scan.commands.manage import manage_app
 from sober_scan.commands.model import model_app
 from sober_scan.commands.train import train_model_command
@@ -68,6 +69,9 @@ app.add_typer(model_app, name="model")
 
 # Add management commands as a subcommand group
 app.add_typer(manage_app, name="manage")
+
+# Add evaluation commands (LOSO baselines) as a subcommand group
+app.add_typer(eval_app, name="evaluate")
 
 
 if __name__ == "__main__":

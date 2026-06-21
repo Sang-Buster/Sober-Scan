@@ -28,13 +28,16 @@ class BACLevel(Enum):
 
 # Model types
 class ModelType(str, Enum):
-    """Types of models that can be downloaded."""
+    """Types of models that can be downloaded.
+
+    The four drowsiness models (svm/nb/knn/rf) were removed in this
+    refactor: their training labels were computed by thresholding the
+    same EAR feature the models were trained on, so the perfect
+    accuracy was a tautology. Drowsiness detection now uses a direct
+    EAR rule (see ``commands/detect.py``).
+    """
 
     DLIB_SHAPE_PREDICTOR = "dlib-shape-predictor"
-    SVM = "svm"
-    NB = "nb"
-    KNN = "knn"
-    RF = "rf"
     CNN = "cnn"
     ALL = "all"
 
@@ -42,31 +45,24 @@ class ModelType(str, Enum):
 # Model URLs
 MODEL_URLS = {
     ModelType.DLIB_SHAPE_PREDICTOR: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/shape_predictor_68_face_landmarks.dat.bz2",
-    ModelType.SVM: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_svm.joblib",
-    ModelType.NB: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_nb.joblib",
-    ModelType.KNN: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_knn.joblib",
-    ModelType.RF: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/drowsiness_rf.joblib",
     ModelType.CNN: "https://github.com/Sang-Buster/Sober-Scan/releases/download/0.0.1/intoxication_cnn.pt",
 }
 
 # Model file names
 MODEL_FILENAMES = {
     ModelType.DLIB_SHAPE_PREDICTOR: "shape_predictor_68_face_landmarks.dat",
-    ModelType.SVM: "svm.joblib",
-    ModelType.NB: "nb.joblib",
-    ModelType.KNN: "knn.joblib",
-    ModelType.RF: "rf.joblib",
     ModelType.CNN: "cnn.pt",
 }
 
 # Model descriptions
 MODEL_DESCRIPTIONS = {
     ModelType.DLIB_SHAPE_PREDICTOR: "68-point facial landmark predictor model from dlib",
-    ModelType.SVM: "Pre-trained SVM model for drowsiness detection",
-    ModelType.NB: "Pre-trained Naive Bayes model for drowsiness detection",
-    ModelType.KNN: "Pre-trained K-Nearest Neighbors model for drowsiness detection",
-    ModelType.RF: "Pre-trained Random Forest model for drowsiness detection",
-    ModelType.CNN: "Pre-trained CNN model for intoxication detection from images",
+    ModelType.CNN: (
+        "Pre-trained CNN model for intoxication detection. "
+        "NOTE: published 81% accuracy was a leaky-split artifact; "
+        "honest cross-subject AUC is ~0.48 (below random). See "
+        "models/MODEL_EVALUATION_REPORT.md."
+    ),
 }
 
 
